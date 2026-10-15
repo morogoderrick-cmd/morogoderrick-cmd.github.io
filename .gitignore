@@ -1,0 +1,12 @@
+# generated on the server by build-unit-pages.js
+units/
+sitemap.xml
+robots.txt
+
+# tooling and OS clutter
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
