@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Residia portal</title>
+<style>
+:root{--bg:#0e0d0b;--s:#17150f;--l:#2b2619;--g:#c9a35b;--t:#efe9da;--m:#9a917c;--r:#e0836f;--ok:#8fbf8a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px/1.5 system-ui,Segoe UI,sans-serif}
+h1,h2{font-family:Georgia,serif;font-weight:400;margin:0 0 12px}h1{font-size:28px}h2{font-size:20px;color:var(--g)}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid var(--l)}
+header b{font:22px Georgia,serif;color:var(--g)}main{max-width:960px;margin:0 auto;padding:24px 16px 64px}
+.card{background:var(--s);border:1px solid var(--l);border-radius:10px;padding:18px;margin-bottom:16px}.box{max-width:380px;margin:8vh auto}
+label{display:block;font-size:13px;color:var(--m);margin:12px 0 4px}
+input,select,textarea{width:100%;padding:10px;background:var(--bg);color:var(--t);border:1px solid var(--l);border-radius:6px;font:inherit}
+input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:1px}
+button{background:var(--g);color:#15120a;border:0;border-radius:6px;padding:10px 16px;font-weight:600;font-size:14px;font-family:inherit;cursor:pointer}
+button:disabled{opacity:.5}button.o{background:none;color:var(--g);border:1px solid var(--g)}button.s{padding:5px 10px;font-size:12px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+.n{font:30px Georgia,serif;color:var(--g)}.m{color:var(--m);font-size:13px}.err{color:var(--r);margin:10px 0}.ok{color:var(--ok);margin:10px 0}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--l)}th{color:var(--m);font-weight:400}
+.wrap{overflow-x:auto}nav{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}a{color:var(--g)}
+.pw{font:18px ui-monospace,Consolas,monospace;background:var(--bg);padding:8px;border-radius:6px;display:inline-block}
+</style></head><body><div id="app"></div>
+<script>
+const API='https://residia-api.onrender.com/api',BASE=location.pathname.replace(/\/(forgot|reset)-password\/?$/,'').replace(/\/index\.html$/,'').replace(/\/$/,'');
+const $=s=>document.querySelector(s),A=$('#app'),ss=sessionStorage;let tok=ss.getItem('t'),me=JSON.parse(ss.getItem('u')||'null'),tab='people';
+const e=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const K=n=>'KES '+Number(n||0).toLocaleString('en-KE'),D=d=>d?String(d).slice(0,10):'-';
+const tbl=(h,r)=>r.length?`<div class="wrap"><table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${r.map(x=>`<tr>${x.map(c=>`<td>${c&&c.h!==undefined?c.h:e(c)}</td>`).join('')}</tr>`).join('')}</table></div>`:'<p class="m">Nothing here yet.</p>';
+async function api(m,p,b){const r=await fetch(API+p,{method:m,headers:{'Content-Type':'application/json',...(tok?{Authorization:'Bearer '+tok}:{})},body:b?JSON.stringify(b):undefined}).catch(()=>{throw new Error('Cannot reach the server. If it was idle, wait a few seconds and try again.')});let j={};try{j=await r.json()}catch(x){}if(!r.ok){if(r.status===401&&tok)out();throw new Error(j.message||'Something went wrong.')}return j}
+function save(t,u,must){tok=t;ss.setItem('t',t);if(u){me=u;ss.setItem('u',JSON.stringify(u))}must?ss.setItem('must','1'):ss.removeItem('must')}
+function out(){ss.clear();tok=me=null;go()}
+const msg=(id,t,ok)=>{const n=$(id);if(n)n.innerHTML=t?`<p class="${ok?'ok':'err'}">${e(t)}</p>`:''};
+const form=(id,fn)=>$(id).onsubmit=async ev=>{ev.preventDefault();const b=ev.submitter;b&&(b.disabled=true);msg(id+'e','');try{await fn(Object.fromEntries(new FormData(ev.target)))}catch(x){msg(id+'e',x.message)}b&&(b.disabled=false)};
+function shell(h){A.innerHTML=`<header><b>Residia</b>${tok&&me?`<span class="m">${e(me.name)} (${e(me.role)}) <button class="o s" id="so">Sign out</button></span>`:''}</header><main>${h}</main>`;const b=$('#so');if(b)b.onclick=out}
+const fail=x=>shell(`<p class="err">${e(x.message)}</p>`);
+
+function login(){shell(`<div class="card box"><h1>Sign in</h1><p class="m">Tenants, owners and staff all sign in here with the email and password the office gave you.</p><form id="lf"><label>Email</label><input name="email" type="email" required autocomplete="username"><label>Password</label><input name="password" type="password" required autocomplete="current-password"><div id="lfe"></div><button>Sign in</button></form><p><a href="${BASE}/forgot-password">Forgot password?</a></p></div>`);
+form('#lf',async f=>{const r=await api('POST','/auth/login',f);save(r.token,r.user,r.mustChangePassword);go()})}
+function first(){shell(`<div class="card box"><h1>Set your password</h1><p class="m">This is your first sign-in. Choose a password only you know, at least 8 characters.</p><form id="cf"><label>Password you were given</label><input name="currentPassword" type="password" required><label>New password</label><input name="newPassword" type="password" minlength="8" required><label>Repeat new password</label><input name="again" type="password" required><div id="cfe"></div><button>Save and continue</button></form></div>`);
+form('#cf',async f=>{if(f.newPassword!==f.again)throw new Error('The two new passwords do not match.');const r=await api('POST','/auth/change-password',{currentPassword:f.currentPassword,newPassword:f.newPassword});save(r.token,null,false);go()})}
+function forgot(){shell(`<div class="card box"><h1>Forgot password</h1><p class="m">Enter your email. If it belongs to an account, we send a link to choose a new password.</p><form id="ff"><label>Email</label><input name="email" type="email" required><div id="ffe"></div><button>Send reset link</button></form><p><a href="${BASE}/">Back to sign in</a></p></div>`);
+form('#ff',async f=>{const r=await api('POST','/auth/forgot-password',f);msg('#ffe',r.message,1)})}
+function reset(){const tk=new URLSearchParams(location.search).get('token')||'';shell(`<div class="card box"><h1>Choose a new password</h1><form id="rs"><label>New password</label><input name="password" type="password" minlength="8" required><label>Repeat new password</label><input name="again" type="password" required><div id="rse"></div><button>Save password</button></form></div>`);
+form('#rs',async f=>{if(f.password!==f.again)throw new Error('The two passwords do not match.');await api('POST','/auth/reset-password',{token:tk,password:f.password});shell(`<div class="card box"><h1>Password saved</h1><p><a href="${BASE}/">Sign in</a></p></div>`)})}
+
+async function poll(id,n){n=n||0;if(n>30)return msg('#pfe','No answer yet. Check your recent payments in a minute.');try{const s=await api('GET','/payments/'+id+'/status');if(s.status==='pending')return setTimeout(()=>poll(id,n+1),4000);if(s.status==='success'){msg('#pfe','Paid. Receipt '+s.receipt,1);setTimeout(tenant,2500)}else msg('#pfe','Payment '+s.status+(s.message?': '+s.message:''))}catch(x){msg('#pfe',x.message)}}
+async function tenant(){shell('<p class="m">Loading...</p>');try{const d=await api('GET','/tenant/dashboard');
+if(!d.lease)return shell('<div class="card"><h2>Welcome</h2><p>You do not have an active lease yet. The office will link your account to your unit.</p></div>');
+const rep=await api('GET','/maintenance'),b=d.balance,owe=b.outstanding>0;
+shell(`<h1>${e(d.unit.label)}, ${e(d.property.name)}</h1><div class="card"><div class="row"><div><div class="n">${K(Math.abs(b.outstanding))}</div><div class="m">${owe?'Rent owing':'Paid ahead'}</div></div><div><div class="n">${K(d.lease.rent)}</div><div class="m">Monthly rent, due on day ${e(d.lease.dueDay)}</div></div><div><div class="n">${D(b.nextDueDate)}</div><div class="m">Next due date</div></div></div></div>
+<div class="card"><h2>Pay rent with M-Pesa</h2><form id="pf" class="row"><div><label>Amount (KES)</label><input name="amount" type="number" min="1" value="${owe?b.outstanding:d.lease.rent}"></div><div><button>Send request to my phone</button></div></form><div id="pfe"></div></div>
+<div class="card"><h2>Recent payments</h2>${tbl(['Date','Amount','Status','Receipt'],d.recentPayments.map(p=>[D(p.createdAt),K(p.amount),p.status,p.receipt||'-']))}</div>
+<div class="card"><h2>Repairs</h2>${tbl(['Date','Problem','Status'],rep.map(m=>[D(m.createdAt),m.title||m.description,m.status]))}<form id="rf"><label>Report a problem</label><textarea name="description" rows="3" minlength="5" required></textarea><label>Priority</label><select name="priority"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="low">Low</option></select><div id="rfe"></div><button>Send repair request</button></form></div>`);
+form('#pf',async f=>{const r=await api('POST','/payments/stk',{amount:Number(f.amount)});msg('#pfe',r.message,1);poll(r.paymentId)});
+form('#rf',async f=>{await api('POST','/maintenance',f);tenant()})}catch(x){fail(x)}}
+async function owner(){shell('<p class="m">Loading...</p>');try{const d=await api('GET','/owner/summary'),t=d.totals;
+shell(`<h1>Your properties</h1><div class="card"><div class="row"><div><div class="n">${t.units}</div><div class="m">Units: ${t.occupied} occupied, ${t.vacant} vacant</div></div><div><div class="n">${K(t.rentReceivedThisMonth)}</div><div class="m">Rent received this month</div></div><div><div class="n">${t.openRepairs}</div><div class="m">Open repairs</div></div></div></div><div class="card">${tbl(['Property','Units','Vacant','Rent this month','Open repairs'],d.properties.map(p=>[p.name,p.units,p.vacant,K(p.rentReceivedThisMonth),p.openRepairs]))}</div>`)}catch(x){fail(x)}}
+
+const tp=(w,t)=>{$('#pwb').innerHTML=`<p>${e(w)}. Give this temporary password to the person. It is shown once, and they must change it at first sign-in.</p><div class="pw">${e(t)}</div>`};
+async function people(){const u=await api('GET','/users');
+$('#tab').innerHTML=`<div class="card"><h2>Add a person</h2><form id="uf" class="row"><div><label>Name</label><input name="name" required></div><div><label>Email</label><input name="email" type="email" required></div><div><label>Phone</label><input name="phone" placeholder="0712345678"></div><div><label>Role</label><select name="role"><option>tenant</option><option>owner</option>${me.role==='admin'?'<option>manager</option><option>admin</option>':''}</select></div><div><button>Create account</button></div></form><div id="ufe"></div><div id="pwb"></div></div><div class="card">${tbl(['Name','Email','Role','Unit','Status',''],u.map(x=>[x.name,x.email,x.role,x.unitLabel||'-',x.active?'Active':'Off',{h:`<button class="o s" data-r="${e(x.id)}">Reset password</button> <button class="o s" data-a="${e(x.id)}" data-v="${x.active?0:1}">${x.active?'Deactivate':'Activate'}</button>`}]))}</div>`;
+form('#uf',async f=>{const r=await api('POST','/users',f);await people();tp('Account created for '+f.email,r.temporaryPassword)});
+document.querySelectorAll('[data-r]').forEach(b=>b.onclick=async()=>{if(!confirm('Reset this password?'))return;try{const r=await api('POST','/users/'+b.dataset.r+'/reset-password');tp('Password reset',r.temporaryPassword)}catch(x){msg('#ufe',x.message)}});
+document.querySelectorAll('[data-a]').forEach(b=>b.onclick=async()=>{try{await api('PATCH','/users/'+b.dataset.a,{active:b.dataset.v==='1'});people()}catch(x){msg('#ufe',x.message)}})}
+async function units(){const[p,u]=await Promise.all([api('GET','/properties'),api('GET','/units')]);
+$('#tab').innerHTML=`<div class="card"><h2>Add a property</h2><form id="pp" class="row"><div><label>Name</label><input name="name" required></div><div><label>Location</label><input name="location" placeholder="Eldoret" required></div><div><button>Add property</button></div></form><div id="ppe"></div></div>
+<div class="card"><h2>Add a unit</h2><form id="uu" class="row"><div><label>Property</label><select name="propertyId" required>${p.map(x=>`<option value="${e(x.id)}">${e(x.name)}</option>`).join('')}</select></div><div><label>Unit</label><input name="label" placeholder="A1" required></div><div><label>Rent (KES)</label><input name="rent" type="number" required></div><div><label>Bedrooms</label><input name="bedrooms" type="number"></div><div><label>Photo link (optional)</label><input name="image" type="url"></div><div><button>Add unit</button></div></form><div id="uue"></div></div>
+<div class="card">${tbl(['Unit','Property','Rent','Status','On website'],u.map(x=>[x.label,x.property.name,K(x.rent),x.status,x.listed?'Yes':'No']))}</div>`;
+form('#pp',async f=>{await api('POST','/properties',f);units()});
+form('#uu',async f=>{const b={propertyId:f.propertyId,label:f.label,rent:Number(f.rent)};if(f.bedrooms)b.bedrooms=Number(f.bedrooms);if(f.image)b.images=[f.image];await api('POST','/units',b);units()})}
+async function leases(){const[l,u,t]=await Promise.all([api('GET','/leases?active=1'),api('GET','/units?status=vacant'),api('GET','/users?role=tenant')]);const free=t.filter(x=>x.active&&!x.leaseId);
+$('#tab').innerHTML=`<div class="card"><h2>Move a tenant into a unit</h2><form id="ll" class="row"><div><label>Vacant unit</label><select name="unitId" required>${u.map(x=>`<option value="${e(x.id)}">${e(x.label)}, ${e(x.property.name)}</option>`).join('')}</select></div><div><label>Tenant</label><select name="tenantId" required>${free.map(x=>`<option value="${e(x.id)}">${e(x.name)}</option>`).join('')}</select></div><div><label>Start date</label><input name="startDate" type="date" required></div><div><button>Create lease</button></div></form><div id="lle"></div></div>
+<div class="card"><h2>Active leases</h2>${tbl(['Unit','Tenant','Rent','Owing',''],l.map(x=>[x.unitLabel,x.tenantName,K(x.rent),K(x.balance&&x.balance.outstanding),{h:`<button class="o s" data-p="${e(x.id)}">Record payment</button> <button class="o s" data-e="${e(x.id)}">End lease</button>`}]))}</div>`;
+form('#ll',async f=>{await api('POST','/leases',f);leases()});
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=async()=>{const a=prompt('Amount received (KES)?');if(!a)return;const m=prompt('Method: cash, bank or mpesa','cash');try{await api('POST','/payments/manual',{leaseId:b.dataset.p,amount:Number(a),method:m||'cash'});leases()}catch(x){alert(x.message)}});
+document.querySelectorAll('[data-e]').forEach(b=>b.onclick=async()=>{if(!confirm('End this lease and make the unit vacant?'))return;try{await api('POST','/leases/'+b.dataset.e+'/end',{});leases()}catch(x){alert(x.message)}})}
+async function staff(){shell(`<nav>${[['people','People'],['units','Properties and units'],['leases','Leases and payments']].map(([k,l])=>`<button class="${k===tab?'':'o'}" data-t="${k}">${e(l)}</button>`).join('')}</nav><div id="tab"><p class="m">Loading...</p></div>`);
+document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{tab=b.dataset.t;staff()});
+try{await({people,units,leases}[tab])()}catch(x){$('#tab').innerHTML=`<p class="err">${e(x.message)}</p>`}}
+
+function go(){const p=location.pathname;if(/forgot-password\/?$/.test(p))return forgot();if(/reset-password\/?$/.test(p))return reset();
+if(!tok||!me)return login();if(ss.getItem('must'))return first();me.role==='tenant'?tenant():me.role==='owner'?owner():staff()}
+go();
+</script></body></html>

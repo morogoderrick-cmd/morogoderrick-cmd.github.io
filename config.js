@@ -3,8 +3,8 @@
    Anything you leave out falls back to the defaults inside index.html. */
 window.RESIDIA_CONFIG = {
   API_URL:     'https://residia-api.onrender.com/api',   // your Residia backend (live on Render)
-  PORTAL_URL:  'http://localhost:5173',       // where the portal app runs; sign-in sends people here
-  FORGOT_PATH: '',                            // portal route for password reset ('' = use the contact form instead; set to '/forgot-password' once the portal is online)
+  PORTAL_URL:  'https://morogoderrick-cmd.github.io/portal',   // where the portal runs; sign-in sends people here
+  FORGOT_PATH: '/forgot-password',            // portal route for password reset
 
   WHATSAPP: '',            // e.g. '254712345678' (country code, no + or spaces). Empty hides WhatsApp buttons.
   PHONE:    '',            // e.g. '+254712345678'. Empty hides the call button.
